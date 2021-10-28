@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEBVTT_HELPER</title>
+</head>
+<body>
+    <style>
+        label {
+            width: 100%;
+        }
+    </style>
+<div style="display: flex; flex-direction: row; flex-wrap: wrap;">
+    <video src="" id="video" controls="true" style="width: 100%; height: auto; max-width: 800px;"></video>
+    <label for="">1.) choose file
+    <input type="file" onchange="loadvideo()" id="file"></label>
+    <label>play video
+    <button onclick="play()">play</button></label>
+    <label>pause video
+        <button onclick="pause()">pause</button></label>
+</div>
+<label for="">
+    2.) write complete text here. Empty newlines separate text sections. <br>
+<textarea name="" id="input" cols="30" rows="10">
+This is the first sentence in the video.
+
+This is the second sentence. 
+
+This is the third sentence.
+
+...
+
+4: Lorem ipsum dolor sit amet consectetur adipisicing elit. Aliquam quisquam deleniti voluptatum corrupti debitis laudantium molestias aspernatur tempora maiores cumque iste incidunt, consectetur ab, laborum accusantium eveniet autem alias voluptate?
+
+5: Lorem ipsom</textarea><br>
+<label for="">
+    3.) safe input text and get ready to use time markers <br>
+    <button onclick="safeInput()">safe input text</button>
+</label>
+
+<span id="inputStatus"></span>
+</label>
+<br><br><br><br>
+<label>???.) time marker (click this every time a new sentence starts and ends)<br><br>
+    <button onclick="marker()">time marker</button></label><br><br>
+    <span id="currentmarker"></span>
+<br><br><br><br>
+<label for="">profit.) final output: <br><textarea name="" cols="30" rows="10" id="output">
+</textarea></label>
+<label for=""></label>
+
+
+<script>
+let player = document.getElementById("video");
+let output = document.getElementById("output");
+let input = document.getElementById("input");
+let inputStatus = document.getElementById("inputStatus");
+let inputArray = [];
+let markedTexts = [];
+let currentTextIndex = 0;
+
+function safeInput() {
+    inputArray = input.value.split("\n\n");
+    inputStatus.innerHTML = "There are " + inputArray.length + " sentences, which need to be marked";
+    inputArray.forEach( x => markedTexts.push(new MarkedText(x)));
+    currentTextIndex = 0;
+}
+
+let stamp = "";
+let loaded = false;
+function loadvideo() {
+
+let s = document.getElementById("file").files[0];
+player.setAttribute("src", URL.createObjectURL(s));
+player.load();
+player.play();
+loaded = true;
+}
+
+function play() {
+    if(!loaded){
+        loadvideo();
+    }else{
+        player.play();
+    }
+
+}
+
+function pause() {
+player.pause();
+}
+
+let nextText = false;
+function marker(){
+    if(currentTextIndex === markedTexts.length){
+        finalOutput(); return;
+    } 
+    stamp = player.currentTime;
+    
+    let strr = getHoursMinutesSecondsFrom(stamp);
+
+
+    if(!nextText){
+        markedTexts[currentTextIndex].setStart(strr);
+        printInfo();
+    }else{
+        markedTexts[currentTextIndex].setEnd(strr);
+        printInfo();
+        currentTextIndex++;
+    }
+    nextText = !nextText;
+
+    
+}
+
+function printInfo(){
+    document.getElementById("currentmarker").innerHTML = "\n\ncurrently at text: " + markedTexts[currentTextIndex].content + "\ntimestamp start: " +  markedTexts[currentTextIndex].starttime + "\ntimestamp end: " +  markedTexts[currentTextIndex].endtime;
+}
+
+function getHoursMinutesSecondsFrom(i_sec){
+    let ms = parseInt( (i_sec+"").split(".")[1]);
+    let secs = Math.floor(i_sec);
+    let hours = Math.floor(secs / 3600);
+    let minutes = Math.floor((secs % 3600) / 60);
+    let seconds = Math.floor((secs % 3600) % 60);
+
+    ms = String(seconds).padStart(3, '0');
+    seconds = String(seconds).padStart(2, '0');
+    hours = String(hours).padStart(2, '0');
+    minutes = String(minutes).padStart(2, '0');
+
+    return `${hours}:${minutes}:${seconds}.${ms}`;
+}
+
+function starttext(){
+    marker();
+    getHoursMinutesSecondsFrom(stamp);
+    stamp += " --> ";
+}
+
+function stoptext(){
+    stamp += getHoursMinutesSecondsFrom(player.currentTime);
+}
+
+
+class MarkedText{
+    constructor(string){
+        this.content = string;
+        this.isDone = false;
+    }
+    setStart(string){
+        this.starttime = string;
+    }
+
+    setEnd(string){
+        this.endtime = string;
+        this.isDone = true;
+    }
+
+    getFinalRepresentation(){
+        return this.starttime + " --> " + this.endtime + "\n" + this.content;
+    }
+}
+
+function finalOutput(){
+    output.value = "WEBVTT\n\n";
+    markedTexts.forEach( x => output.value += x.getFinalRepresentation() + "\n\n");
+}
+
+</script>
+</body>
+</html>
